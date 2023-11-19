@@ -73,7 +73,10 @@ public class MyApp extends JComponent {
 
             x = hero.getX();
             x -= 10;
-            hero.setX(x);
+
+            if(x >= 0){
+                hero.setX(x);
+            }
 
             repaint();
         }
@@ -86,8 +89,11 @@ public class MyApp extends JComponent {
 
             x = hero.getX();
             x += 10;
-            hero.setX(x);
 
+            if(x + hero.getWidth() <= 1000){
+                hero.setX(x);
+            }
+            
             repaint();
         }
     };
