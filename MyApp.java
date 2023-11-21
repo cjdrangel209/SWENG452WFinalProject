@@ -1,3 +1,15 @@
+///usr/bin/env jbang "$0" "$@" ; exit $?
+
+//DEPS org.slf4j:slf4j-api:1.7.35
+//DEPS org.slf4j:slf4j-simple:1.7.35
+//DEPS com.pi4j:pi4j-core:2.3.0
+//DEPS com.pi4j:pi4j-plugin-raspberrypi:2.3.0
+//DEPS com.pi4j:pi4j-plugin-pigpio:2.3.0
+
+//SOURCES Laser.java
+//SOURCES Alien.java
+//SOURCES Hero.java
+
 import javax.swing.*;
 import javax.swing.Timer;
 import java.awt.*;
@@ -8,6 +20,10 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import java.io.File;
+import com.pi4j.Pi4J;
+import com.pi4j.io.gpio.*;
+import com.pi4j.io.gpio.digital.DigitalOutput;
+import com.pi4j.io.gpio.digital.DigitalState;
 
 public class MyApp extends JComponent {
     static final int alienHeight = 25;
@@ -112,23 +128,15 @@ public class MyApp extends JComponent {
             }
 
             try{
-
-                String filePath = "C:/Users/cjdra/Documents/Penn State/SWENG 452W/Final Project/mixkit-laser-cannon-shot-1678.wav";
-                AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(filePath));
-
-                Clip clip = AudioSystem.getClip();
-
-                clip.open(audioInputStream);
-                clip.start();
-
-                Thread.sleep(300);
-
-                clip.stop();
-                clip.close();
-                audioInputStream.close();
+                Runtime.getRuntime().exec("aplay mixkit-laser-cannon-shot-1678.wav");
+                
+                Thread.sleep(400);
+                
+                blinkLight(17);
             }catch (Exception exc){
                 exc.printStackTrace();
             }
+        
 
 
             repaint();
@@ -222,20 +230,14 @@ public class MyApp extends JComponent {
     private boolean diffLevelSet = false;
     private boolean startStop = false; //false for stop - true for start
 
-
     private JPanel panel1;
 
     public MyApp(){
         //establishes initial positions for aliens on screen
         setupAliens();
 
-        //timerSeconds = hardnessLevel();
-
-
-
         //timer initial delay and start for moving aliens
         timer1.setInitialDelay(500);
-        //timer1.start();
 
         //Input and Action Map for keystroke "A" for moving hero to the left
         this.getInputMap().put(KeyStroke.getKeyStroke("A"), "moveLeft");
@@ -262,8 +264,8 @@ public class MyApp extends JComponent {
 
     }
 
-
     public void paint(Graphics g){
+       
         //draws lines to separate game play screen from score and message panels on side
         g.setColor(Color.YELLOW);
         g.drawLine(1000, 0,1000, 850);      //straight line down
@@ -299,25 +301,38 @@ public class MyApp extends JComponent {
         g.drawString(Integer.toString(score),1150, 100);
 
         g.setFont(new Font("OCR A Extended", Font.PLAIN, 16));
-        //g.drawString(message, 1030, 250);
 
         //win = 1
         //lose = 0
         //continue = 2
-        int finishStatus;
-
-        finishStatus = checkFinish();
-        if (finishStatus == 1){
-            laserTimer.stop();
-            timer1.stop();
-            g.drawString("CONGRATS YOU WIN", 1020,600);
-            g.drawString("Press 0 to play again", 1020, 650);
-        }
-        else if(finishStatus == 0){
-            laserTimer.stop();
-            timer1.stop();
-            g.drawString("SORRY YOU LOSE", 1020, 600);
-            g.drawString("Press 0 to play again", 1020, 650);
+        int finishStatus, count = 0;
+        
+        try{
+            finishStatus = checkFinish();
+            if (finishStatus == 1){
+                laserTimer.stop();
+                timer1.stop();
+                g.drawString("CONGRATS YOU WIN", 1020,600);
+                g.drawString("Press 0 to play again", 1020, 650);
+                
+                while(count < 3){
+                    blinkLight(22);
+                    count++;
+                }
+            }
+            else if(finishStatus == 0){
+                laserTimer.stop();
+                timer1.stop();
+                g.drawString("SORRY YOU LOSE", 1020, 600);
+                g.drawString("Press 0 to play again", 1020, 650);
+                
+                while(count < 3){
+                     blinkLight(27);
+                    count++;
+                }
+            }
+        } catch(Exception e){
+            e.printStackTrace();
         }
 
         if(!diffLevelSet){
@@ -368,7 +383,7 @@ public class MyApp extends JComponent {
 
     public void collisionDetection(){
         int laserTop, alienBottom, alienPts;
-
+  
         //for loop checks all of the lasers in the array
         for(Laser laser: laserList){
             //if a laser is listed as "visible"
@@ -394,16 +409,11 @@ public class MyApp extends JComponent {
                             score += alienPts;
 
                             try {
-                                String filePath = "C:/Users/cjdra/Documents/Penn State/SWENG 452W/Final Project/mixkit-arcade-game-explosion-echo-1698.wav";
-                                AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(filePath));
-
-                                Clip clip = AudioSystem.getClip();
-                                clip.open(audioInputStream);
-                                clip.start();
+                                Runtime.getRuntime().exec("aplay mixkit-arcade-game-explosion-echo-1698.wav");
+                                
                                 Thread.sleep(400);
-                                clip.stop();
-                                clip.close();
-                                audioInputStream.close();
+                                
+                                blinkLight(27);
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
@@ -443,6 +453,30 @@ public class MyApp extends JComponent {
         }
 
         return finished;
+    }
+    
+    private void blinkLight(int pin){
+        var pi4j = Pi4J.newAutoContext();
+        
+        var ledConfig = DigitalOutput.newConfigBuilder(pi4j)
+                .id("led")
+                .name("LED Flasher")
+                .address(pin)
+                .shutdown(DigitalState.LOW)
+                .initial(DigitalState.LOW)
+                .provider("pigpio-digital-output");
+        
+        var led = pi4j.create(ledConfig);
+        
+        try{
+            led.high();
+            Thread.sleep(400);
+            led.low();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        
+        pi4j.shutdown();
     }
 
 }
