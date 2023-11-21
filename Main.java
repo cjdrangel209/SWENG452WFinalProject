@@ -1,8 +1,19 @@
+///usr/bin/env jbang "$0" "$@" ; exit $?
+
+//DEPS org.slf4j:slf4j-api:1.7.35
+//DEPS org.slf4j:slf4j-simple:1.7.35
+//DEPS com.pi4j:pi4j-core:2.3.0
+//DEPS com.pi4j:pi4j-plugin-raspberrypi:2.3.0
+//DEPS com.pi4j:pi4j-plugin-pigpio:2.3.0
+
+//SOURCES MyApp.java
+//SOURCES Laser.java
+//SOURCES Alien.java
+//SOURCES Hero.java
+
 import javax.swing.*;
 import java.awt.*;
 
-// Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
-// then press Enter. You can now see whitespace characters in your code.
 public class Main {
     public static void main(String[] args) {
         JFrame window = new JFrame();
